@@ -84,14 +84,14 @@ def get_velocity_for_customer(customer_id, current_time):
     return count_1h, count_24h
 
 
-    def engineer_features(data):
+def engineer_features(data):
         global historical_data
 
         df = data.copy()
 
         if 'amount_usd' not in df.columns or df['amount_usd'].isna().sum():
             df['amount_usd'] = df.apply(
-                lambda row: calculate_amount_usd(row['amount_src'], row['source_currency']),axis=1
+                lambda row: calculate_amount_in_usd(row['amount_src'], row['source_currency']),axis=1
             )
 
         if 'timestamp' in df.columns:
@@ -127,7 +127,7 @@ def get_velocity_for_customer(customer_id, current_time):
         return df
 
 
-    def predict_transaction(model, input_data):
+def predict_transaction(model, input_data):
         """
         make prediction
         """

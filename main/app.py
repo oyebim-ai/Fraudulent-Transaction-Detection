@@ -1,16 +1,16 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import optional
+from typing import Optional
 import mlflow
 import mlflow.sklearn
 import pandas as pd
-
+from pathlib import Path
 
 from src.inference.prediction import (load_historical_data,
                                       predict_transaction,
-                                      engineer_feature,
+                                      engineer_features,
                                       add_transaction_to_cache,
-                                      calculate_amount_usd)
+                                      calculate_amount_in_usd)
 
 from src.utility.model_loader import load_registered_model
 
@@ -31,7 +31,11 @@ async def startup_event():
         model = None
 
     try:
-        csv_path = r"C:\Users\oyebi\Fraudulent-Transaction-Detection\Dataset\artifacts\cleaned_customer_transaction_data.csv"
+        # csv_path = r"C:\Users\oyebi\Fraudulent-Transaction-Detection\Dataset\artifacts\cleaned_customer_transaction_data.csv"
+
+
+        BASE_DIR = Path(__file__).resolve().parent.parent
+        csv_path = BASE_DIR / "Dataset" / "artifacts" / "cleaned_customer_transaction_data.csv"
 
         historical_data = load_historical_data(csv_path)
         print("historical data has been successfully created")
@@ -49,9 +53,9 @@ class TransactionData(BaseModel):
     channel: str
     amount_src: float   
     fee: float
-    new_device: optional[str] ="No"
+    new_device: Optional[str] ="No"
     ip_country: str
-    location_mismatch: optional[str] ="No"
+    location_mismatch: Optional[str] ="No"
     ip_risk_score: float
     kyc_tier: str
     account_age_days: int
@@ -63,10 +67,10 @@ class TransactionData(BaseModel):
 class PredictionResponse(BaseModel):
     is_fraud: int
     fraud_probability: float
-    txn_velocity_1h: optional[int] = None
-    txn_velocity_24h: optional[int] = None
-    velocity_spike: optional[int] = None
-    amount_usd: optional[float] = None
+    txn_velocity_1h: Optional[int] = None
+    txn_velocity_24h: Optional[int] = None
+    velocity_spike: Optional[int] = None
+    amount_usd: Optional[float] = None
 
 # Creating the predictict API so that our modelcan get users requests and make prediction
 @app.post("/predict", response_model=PredictionResponse)
@@ -86,9 +90,9 @@ async def predict(transaction: TransactionData):
 
         # get the engineered features for the response
         df = pd.DataFrame([input_data])
-        df_engineered = engineer_feature(df)
+        df_engineered = engineer_features(df)
 
-        amount_usd = calculate_amount_usd(transaction.amount_src, transaction.source_currency)
+        amount_usd = calculate_amount_in_usd(transaction.amount_src, transaction.source_currency)
 
         add_transaction_to_cache(
             transaction.customer_id,
